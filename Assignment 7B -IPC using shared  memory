@@ -1,0 +1,191 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+
+#define SZ 4096  // size of shared memory
+
+int main() {
+    int shm_id;
+    int *shm_ptr;
+    int data;
+    int pid;
+
+    // Step 1: Create shared memory
+    shm_id = shmget(IPC_PRIVATE, SZ, IPC_CREAT | 0666);
+    if (shm_id < 0) {
+        perror("Error creating shared memory");
+        exit(1);
+    }
+
+    printf("Shared memory created\n");
+    printf("Shared memory ID: %d\n", shm_id);
+
+    // Step 2: Attach shared memory
+    shm_ptr = (int*) shmat(shm_id, NULL, 0);
+    if (shm_ptr == (int*) -1) {
+        perror("Error attaching shared memory");
+        exit(1);
+    }
+
+    printf(" Shared memory attached at address: %p\n", shm_ptr);
+
+    // Step 3: Input data from user (Server part)
+    printf("\nEnter an integer to store in shared memory: ");
+    scanf("%d", &data);
+    *shm_ptr = data; // write data into shared memory
+
+    // Step 4: Create child process
+    pid = fork();
+
+    if (pid < 0) {
+        perror("Fork failed");
+        exit(1);
+    }
+
+    // Step 5: Child process reads data (Client part)
+    if (pid == 0) {
+        printf("\n Child process reading from shared memory...\n");
+        printf("Value read from shared memory: %d\n", *shm_ptr);
+
+        // Detach shared memory in child
+        if (shmdt(shm_ptr) == 0)
+            printf("Child detached shared memory successfully.\n");
+        else
+            perror("Child detach error");
+    } else {
+        // Step 6: Parent process detaches
+        if (shmdt(shm_ptr) == 0)
+            printf("\nParent detached shared memory successfully.\n");
+        else
+            perror("Parent detach error");
+
+        // Step 7: Remove shared memory
+        shmctl(shm_id, IPC_RMID, NULL);
+        printf(" Shared memory removed from system.\n");
+    }
+
+    return 0;
+}
+
+Assignment no 6
+
+page replacement
+
+#include <stdio.h>
+#include <stdlib.h>
+
+void printFrames(int frames[], int frameCount) {
+    for (int i = 0; i < frameCount; i++) {
+        if (frames[i] == -1)
+            printf("|-| ");
+        else
+            printf("|%d| ", frames[i]);
+    }
+    printf("\n");
+}
+
+// FIFO Page Replacement
+void fifo(int pages[], int n, int frameCount) {
+    int frames[10], index = 0, faults = 0;
+    for (int i = 0; i < frameCount; i++) frames[i] = -1;
+
+    printf("\nFIFO Page Replacement:\n");
+    for (int i = 0; i < n; i++) {
+        int page = pages[i], found = 0;
+        for (int j = 0; j < frameCount; j++)
+            if (frames[j] == page) found = 1;
+
+        if (!found) {  // Page fault
+            frames[index] = page;
+            index = (index + 1) % frameCount;
+            faults++;
+        }
+        printFrames(frames, frameCount);
+    }
+    printf("Total Page Faults: %d\n", faults);
+}
+
+// LRU Page Replacement
+void lru(int pages[], int n, int frameCount) {
+    int frames[10], recent[10], faults = 0;
+    for (int i = 0; i < frameCount; i++) frames[i] = -1;
+
+    printf("\nLRU Page Replacement:\n");
+    for (int i = 0; i < n; i++) {
+        int page = pages[i], found = 0;
+        for (int j = 0; j < frameCount; j++)
+            if (frames[j] == page) { found = 1; recent[j] = i; }
+
+        if (!found) {  // Page fault
+            int lruIndex = 0;
+            for (int j = 1; j < frameCount; j++)
+                if (frames[j] == -1 || recent[j] < recent[lruIndex])
+                    lruIndex = j;
+            frames[lruIndex] = page;
+            recent[lruIndex] = i;
+            faults++;
+        }
+        printFrames(frames, frameCount);
+    }
+    printf("Total Page Faults: %d\n", faults);
+}
+
+// Optimal Page Replacement
+void optimal(int pages[], int n, int frameCount) {
+    int frames[10], faults = 0;
+    for (int i = 0; i < frameCount; i++) frames[i] = -1;
+
+    printf("\nOptimal Page Replacement:\n");
+    for (int i = 0; i < n; i++) {
+        int page = pages[i], found = 0;
+        for (int j = 0; j < frameCount; j++)
+            if (frames[j] == page) found = 1;
+
+        if (!found) {
+            int replaceIndex = -1, farthest = i + 1;
+            for (int j = 0; j < frameCount; j++) {
+                int k;
+                for (k = i + 1; k < n; k++)
+                    if (frames[j] == pages[k]) break;
+                if (k == n) { replaceIndex = j; break; } // Not used again
+                if (k > farthest) { farthest = k; replaceIndex = j; }
+            }
+            if (replaceIndex == -1) replaceIndex = 0;
+            frames[replaceIndex] = page;
+            faults++;
+        }
+        printFrames(frames, frameCount);
+    }
+    printf("Total Page Faults: %d\n", faults);
+}
+
+int main() {
+    int n, pages[50], frameCount, choice;
+
+    printf("Enter total number of pages: ");
+    scanf("%d", &n);
+
+    printf("Enter page sequence: ");
+    for (int i = 0; i < n; i++) scanf("%d", &pages[i]);
+
+    printf("Enter number of frames (min 3): ");
+    scanf("%d", &frameCount);
+
+    do {
+        printf("\n--- Page Replacement Menu ---\n");
+        printf("1. FIFO\n2. LRU\n3. Optimal\n0. Exit\nEnter choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: fifo(pages, n, frameCount); break;
+            case 2: lru(pages, n, frameCount); break;
+            case 3: optimal(pages, n, frameCount); break;
+            case 0: exit(0);
+            default: printf("Invalid choice!\n");
+        }
+    } while (choice != 0);
+
+    return 0;
+}
