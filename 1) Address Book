@@ -1,0 +1,48 @@
+#!/bin/bash
+echo "Enter file name for Address Book:"
+read file
+touch "$file"
+
+while true
+do
+    echo ""
+    echo "1. Create"
+    echo "2. View"
+    echo "3. Insert"
+    echo "4. Delete"
+    echo "5. Exit"
+    read -p "Enter choice: " ch
+
+    case $ch in
+    1)
+        echo "Creating new Address Book..."
+        echo -e "NAME\tID\tPHONE\tADDRESS" > "$file"
+        echo "Created successfully."
+        ;;
+    2)
+        echo "Showing Address Book:"
+        cat "$file"
+        ;;
+    3)
+        echo "Add new record:"
+        read -p "Name: " name
+        read -p "ID: " id
+        read -p "Phone: " ph
+        read -p "Address: " ad
+        echo -e "$name\t$id\t$ph\t$ad" >> "$file"
+        echo "Record added!"
+        ;;
+    4)
+        read -p "Enter ID to delete: " id
+        grep -vw "$id" "$file" > temp && mv temp "$file"
+        echo "Record deleted if found."
+        ;;
+    5)
+        echo "Exiting program..."
+        exit
+        ;;
+    *)
+        echo "Invalid choice!"
+        ;;
+    esac
+done
