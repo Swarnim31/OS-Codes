@@ -1,0 +1,44 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    int n, i, j, t;
+    int a[50];
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+    printf("Enter %d numbers:\n", n);
+    for(i=0;i<n;i++) scanf("%d",&a[i]);
+
+    // Sort array (ascending)
+    for(i=0;i<n-1;i++)
+        for(j=0;j<n-i-1;j++)
+            if(a[j] > a[j+1]) { t=a[j]; a[j]=a[j+1]; a[j+1]=t; }
+
+    printf("\nParent sorted array: ");
+    for(i=0;i<n;i++) printf("%d ", a[i]);
+    printf("\n");
+
+    // Prepare arguments for execv
+    char *args[n+2];
+    args[0] = "./child_exec";         // name of program to run
+    for(i=0;i<n;i++) {
+        args[i+1] = malloc(10);
+        sprintf(args[i+1], "%d", a[i]);   // convert int → string
+    }
+    args[n+1] = NULL;  // mark end of argument list
+
+    pid_t pid = fork();
+
+    if(pid == 0) {
+        // CHILD executes the new program
+        execv(args[0], args);
+        perror("exec failed");
+    }
+    else {
+        wait(NULL);
+        printf("Parent: Child finished.\n");
+    }
+    return 0;
+}
