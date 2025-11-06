@@ -1,0 +1,17 @@
+#include <stdio.h>
+
+int main(int argc, char *argv[]) {
+    int i;
+    if(argc < 2) {
+        printf("No data received!\n");
+        return 0;
+    }
+    printf("\nChild received sorted array:\n");
+    for(i=1;i<argc;i++) printf("%s ", argv[i]);
+
+    printf("\n\nArray in Reverse Order:\n");
+    for(i=argc-1;i>0;i--) printf("%s ", argv[i]);
+    printf("\n");
+
+    return 0;
+}
