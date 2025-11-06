@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    int a[50], n, i, j, t;
+    printf("Enter number of elements: ");
+    scanf("%d", &n);
+    printf("Enter %d numbers:\n", n);
+    for(i=0;i<n;i++) scanf("%d",&a[i]);
+
+    pid_t pid = fork();
+
+    if(pid==0) {  // Child process
+        printf("\n-- CHILD -- PID=%d PPID=%d\n", getpid(), getppid());
+        for(i=0;i<n-1;i++)           // Ascending sort
+            for(j=0;j<n-i-1;j++)
+                if(a[j]>a[j+1]) { t=a[j]; a[j]=a[j+1]; a[j+1]=t; }
+        printf("Ascending: ");
+        for(i=0;i<n;i++) printf("%d ",a[i]);
+        printf("\n");
+
+        // Uncomment for ORPHAN demo:
+        // sleep(5); printf("After 5s, new PPID=%d (orphan)\n", getppid());
+    }
+    else {        // Parent process
+        printf("\n-- PARENT -- PID=%d ChildPID=%d\n", getpid(), pid);
+        for(i=0;i<n-1;i++)           // Descending sort
+            for(j=0;j<n-i-1;j++)
+                if(a[j]<a[j+1]) { t=a[j]; a[j]=a[j+1]; a[j+1]=t; }
+        printf("Descending: ");
+        for(i=0;i<n;i++) printf("%d ",a[i]);
+        printf("\n");
+
+        // Uncomment for ZOMBIE demo:
+        // sleep(10); printf("Check zombie using: ps -el | grep Z\n");
+
+        wait(NULL);   // parent waits for child
+        printf("Child finished.\n");
+    }
+    return 0;
+}
